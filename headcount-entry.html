@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>กรอกกำลังคน — NIM PEP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#0C447C; --primary-light:#E6F1FB;
+  --ok:#1D9E75; --ok-light:#EAF7F1;
+  --err:#A32D2D; --err-light:#FBEAEA;
+  --text:#1e2530; --muted:#6b7684; --border:#dfe4ea; --bg:#f6f8fa;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'IBM Plex Sans Thai',sans-serif; background:var(--bg); color:var(--text);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.topbar{
+  width:100%; background:var(--primary); color:#fff; padding:16px 20px;
+  display:flex; align-items:center; gap:10px; font-weight:600; font-size:16px;
+}
+.topbar .logo{width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;}
+.wrap{ width:100%; max-width:420px; padding:20px 18px 40px; flex:1; display:flex; flex-direction:column; }
+.card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:14px; }
+h1{ font-size:17px; margin:0 0 4px; font-weight:700; }
+.sub{ font-size:12.5px; color:var(--muted); margin:0 0 16px; line-height:1.5; }
+label{ display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px; margin-top:16px; }
+label:first-of-type{ margin-top:0; }
+input, select{
+  width:100%; padding:13px 14px; border:1.5px solid var(--border); border-radius:11px;
+  font-size:16px; font-family:inherit; color:var(--text); background:#fff;
+}
+input:focus, select:focus{ outline:none; border-color:var(--primary); }
+input[type="number"]{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:20px; text-align:center; letter-spacing:1px; }
+.btn{
+  width:100%; padding:15px; border:none; border-radius:12px; font-size:16px; font-weight:700;
+  font-family:inherit; cursor:pointer; margin-top:22px; transition:.12s opacity;
+}
+.btn:active{ opacity:.75; }
+.btn-primary{ background:var(--primary); color:#fff; }
+.btn-primary:disabled{ background:#b7c2cc; cursor:not-allowed; }
+.err-msg{ background:var(--err-light); color:var(--err); font-size:12.5px; padding:9px 12px; border-radius:9px; margin-top:12px; display:none; }
+.hint{ font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
+#screenForm, #screenSuccess{ display:none; }
+#screenForm.active, #screenSuccess.active{ display:block; }
+.success-icon{
+  width:64px; height:64px; border-radius:50%; background:var(--ok-light); color:var(--ok);
+  display:flex; align-items:center; justify-content:center; margin:6px auto 16px; font-size:32px;
+}
+.success-summary{ background:var(--bg); border-radius:11px; padding:14px; font-size:13.5px; line-height:1.7; margin-bottom:4px; }
+.success-summary b{ color:var(--primary); }
+.center{ text-align:center; }
+.modeToggle{ display:flex; border:1.5px solid var(--border); border-radius:11px; overflow:hidden; margin-bottom:18px; }
+.modeToggle button{
+  flex:1; border:none; background:#fff; padding:11px 8px; font-size:13.5px; font-weight:600;
+  font-family:inherit; color:var(--muted); cursor:pointer;
+}
+.modeToggle button.active{ background:var(--primary); color:#fff; }
+.count-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.count-row label{ font-size:11px; text-align:center; }
+.count-row input{ padding:11px 6px; font-size:18px; }
+.recent-box{
+  background:var(--bg); border-radius:11px; padding:11px 13px; margin-top:14px; font-size:12px; color:var(--muted);
+  display:none;
+}
+.recent-box.show{ display:block; }
+.recent-box .rtitle{ font-weight:600; color:var(--text); margin-bottom:6px; font-size:12.5px; }
+.recent-box .rrow{ display:flex; justify-content:space-between; padding:3px 0; border-top:1px solid var(--border); }
+.recent-box .rrow:first-of-type{ border-top:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="logo">P</div>NIM PEP · กรอกกำลังคน</div>
+
+<div class="wrap">
+
+  <!-- ── หน้ากรอกข้อมูล ── -->
+  <div class="card" id="screenForm">
+    <h1>กรอกข้อมูลกำลังคน</h1>
+    <p class="sub">ไม่ต้องใส่รหัส แต่กรุณาระบุชื่อผู้กรอกทุกครั้ง เพื่อให้ตรวจสอบย้อนหลังได้</p>
+
+    <div class="modeToggle" id="modeToggle">
+      <button data-mode="daily" class="active">กรอกรายวัน</button>
+      <button data-mode="monthly">แผนรายเดือน</button>
+    </div>
+
+    <label for="dcInput">สาขา (DC)</label>
+    <input type="text" id="dcInput" list="dcList" placeholder="พิมพ์ค้นหาชื่อสาขา..." autocomplete="off">
+    <datalist id="dcList"></datalist>
+
+    <div class="recent-box" id="recentBox">
+      <div class="rtitle">กรอกล่าสุดของสาขานี้</div>
+      <div id="recentList"></div>
+    </div>
+
+    <div id="dailyDateWrap">
+      <label for="dateInput">วันที่</label>
+      <input type="date" id="dateInput">
+    </div>
+    <div id="monthlyMonthWrap" style="display:none;">
+      <label for="monthInput">เดือน</label>
+      <input type="month" id="monthInput">
+    </div>
+
+    <label>จำนวนพนักงาน (คน) — ไม่รวมพนักงานขับรถ</label>
+    <div class="count-row">
+      <div><label for="nimInput">พนักงาน NIM</label><input type="number" id="nimInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+      <div><label for="osInput">พนักงาน OS</label><input type="number" id="osInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+      <div><label for="driverInput">พขร. รวม</label><input type="number" id="driverInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="hint">พขร. รวม = พขร. บริษัท + พขร. ผู้ประกอบการ (ไม่ต้องแยก)</div>
+
+    <label for="submitterInput">ชื่อผู้กรอก</label>
+    <input type="text" id="submitterInput" placeholder="ชื่อ-นามสกุล หรือชื่อเล่นที่ระบุตัวได้" autocomplete="off">
+
+    <button class="btn btn-primary" id="submitBtn">บันทึกข้อมูล</button>
+    <div class="err-msg" id="formErr"></div>
+    <div class="hint">กรอกซ้ำวัน/เดือนเดียวกันได้ — ระบบจะแทนที่ค่าล่าสุดให้อัตโนมัติ ไม่นับซ้ำ</div>
+  </div>
+
+  <!-- ── หน้าบันทึกสำเร็จ ── -->
+  <div class="card center" id="screenSuccess">
+    <div class="success-icon">✓</div>
+    <h1>บันทึกสำเร็จ</h1>
+    <p class="sub">ข้อมูลของท่านถูกบันทึกเข้าระบบแล้ว</p>
+    <div class="success-summary" id="successSummary"></div>
+    <p class="sub" style="margin:10px 0 0;">กำลังพาไปหน้าดูข้อมูลรวม...</p>
+    <button class="btn btn-primary" id="againBtn">กรอกอีกสาขา/วันที่</button>
+  </div>
+
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx5f5q449Jp4FU4-stRzV4BTirtYC8i5ubpmITIg_koC3WMpaBkSucqH7gZo7ypws_7/exec";
+const $ = s => document.querySelector(s);
+
+let masterDC = {}; // code -> {DC_Name, ...}
+let currentMode = 'daily'; // 'daily' | 'monthly'
+let allDailyRows = [];   // เก็บไว้ทำ "กรอกล่าสุดของสาขานี้" โดยไม่ต้องยิง fetch ใหม่ทุกครั้งที่พิมพ์
+let allMonthlyRows = [];
+let redirectTimer = null;
+
+function showScreen(id){
+  ['screenForm','screenSuccess'].forEach(s=>{
+    document.getElementById(s).classList.toggle('active', s===id);
+  });
+}
+
+// v: หน้านี้ตัดขั้นตอนใส่ PIN ออกตามที่ UP ขอ (เน้นความเร็ว) — ใช้ "ชื่อผู้กรอก" เป็นตัวระบุตัวตนแทน ไม่มีการยืนยัน
+// ตัวตนจริงจัง (จงใจ เพราะจุดประสงค์คือความเร็ว ไม่ใช่ความปลอดภัยระดับสูง — เหมาะกับข้อมูลกำลังคนที่ไม่ sensitive มาก)
+async function boot(){
+  await loadMasterDC();
+  await loadRecentContext();
+  initFormDefaults();
+  showScreen('screenForm');
+}
+
+async function loadMasterDC(){
+  const res = await fetch(GAS_URL + '?action=getMasterDC').then(r=>r.json());
+  if(res.ok && Array.isArray(res.data)){
+    res.data.forEach(r=>{
+      const size = r.Confirmed_Size || r.Assumed_Size || '';
+      if(size === 'SAT-CDC') return; // สาขาบริวารไม่ต้องกรอกกำลังคนแยก (นับรวมอยู่ใน CDC แม่แล้ว)
+      masterDC[String(r.DC_Code)] = r;
+    });
+  }
+  const list = $('#dcList');
+  list.innerHTML = Object.values(masterDC)
+    .sort((a,b)=>String(a.DC_Name).localeCompare(String(b.DC_Name),'th'))
+    .map(r=>`<option value="${r.DC_Name}">`).join('');
+}
+
+// โหลด Headcount_Daily/Monthly_Plan ทั้งหมดมาเก็บไว้ในตัวแปร ใช้ทำ "กรอกล่าสุดของสาขานี้" ตอนเลือก DC
+// (ข้อมูลไม่ใหญ่มาก โหลดครั้งเดียวตอนเปิดหน้าคุ้มกว่ายิง fetch ใหม่ทุกครั้งที่พิมพ์ค้นหา DC)
+async function loadRecentContext(){
+  try{
+    const [dailyRes, monthlyRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getHeadcountDaily').then(r=>r.json()),
+      fetch(GAS_URL + '?action=getHeadcountMonthlyPlan').then(r=>r.json())
+    ]);
+    if(dailyRes.ok && Array.isArray(dailyRes.data)) allDailyRows = dailyRes.data;
+    if(monthlyRes.ok && Array.isArray(monthlyRes.data)) allMonthlyRows = monthlyRes.data;
+  } catch(e){ /* ไม่ critical — แค่ทำให้กล่อง "กรอกล่าสุด" ไม่โชว์ ไม่กระทบการกรอกใหม่ */ }
+}
+
+function initFormDefaults(){
+  const today = new Date();
+  const iso = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  $('#dateInput').value = iso;
+  $('#dateInput').max = iso; // กันเลือกวันในอนาคต (ฝั่งรายวัน)
+  const monthIso = iso.slice(0,7);
+  $('#monthInput').value = monthIso;
+}
+
+function findDCCodeByName(name){
+  const trimmed = String(name||'').trim();
+  const entry = Object.entries(masterDC).find(([code,r])=>r.DC_Name===trimmed);
+  return entry ? entry[0] : null;
+}
+
+// สลับโหมดรายวัน/แผนรายเดือน — สลับ label วันที่/เดือน ที่แสดง ไม่ล้างค่าที่กรอกไปแล้ว (เผื่อพลาดกดสลับ)
+$('#modeToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  currentMode = btn.dataset.mode;
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+  $('#dailyDateWrap').style.display = currentMode==='daily' ? 'block' : 'none';
+  $('#monthlyMonthWrap').style.display = currentMode==='monthly' ? 'block' : 'none';
+  renderRecentBox();
+});
+
+// พอเลือก/พิมพ์ DC เสร็จ โชว์กล่อง "กรอกล่าสุดของสาขานี้" (จากทั้งรายวันและแผนรายเดือน ตามโหมดที่เลือกอยู่)
+// ช่วยให้คนกรอกเห็นว่ามีคนกรอกไปแล้วหรือยัง กันกรอกซ้ำ/ลืมว่ากรอกไปแล้ว
+$('#dcInput').addEventListener('input', renderRecentBox);
+function renderRecentBox(){
+  const dcCode = findDCCodeByName($('#dcInput').value);
+  const box = $('#recentBox');
+  if(!dcCode){ box.classList.remove('show'); return; }
+  const source = currentMode==='daily' ? allDailyRows : allMonthlyRows;
+  const dateKey = currentMode==='daily' ? 'Date' : 'Month';
+  const rows = source.filter(r=>String(r.DC_Code)===String(dcCode))
+    .sort((a,b)=> String(b[dateKey]).localeCompare(String(a[dateKey])))
+    .slice(0,3);
+  if(!rows.length){ box.classList.remove('show'); return; }
+  $('#recentList').innerHTML = rows.map(r=>{
+    const total = (Number(r.NimExpressCount)||0)+(Number(r.OSCount)||0)+(Number(r.DriverCount)||0);
+    return `<div class="rrow"><span>${r[dateKey]} · ${r.Submitted_By||'–'}</span><span>${total} คน</span></div>`;
+  }).join('');
+  box.classList.add('show');
+}
+
+$('#submitBtn').addEventListener('click', async ()=>{
+  const dcName = $('#dcInput').value.trim();
+  const submitter = $('#submitterInput').value.trim();
+  const nim = $('#nimInput').value, os = $('#osInput').value, drv = $('#driverInput').value;
+  const errEl = $('#formErr');
+  errEl.style.display = 'none';
+
+  const dcCode = findDCCodeByName(dcName);
+  if(!dcCode){
+    errEl.textContent = 'กรุณาเลือกสาขาจากรายชื่อที่ขึ้นให้เลือก (พิมพ์แล้วแตะชื่อที่ตรง)';
+    errEl.style.display = 'block'; return;
+  }
+  if(!submitter){
+    errEl.textContent = 'กรุณากรอกชื่อผู้กรอก';
+    errEl.style.display = 'block'; return;
+  }
+  const periodVal = currentMode==='daily' ? $('#dateInput').value : $('#monthInput').value;
+  if(!periodVal){
+    errEl.textContent = currentMode==='daily' ? 'กรุณาเลือกวันที่' : 'กรุณาเลือกเดือน';
+    errEl.style.display = 'block'; return;
+  }
+  const counts = [nim, os, drv];
+  if(counts.some(v=> v==='' || isNaN(Number(v)) || Number(v)<0)){
+    errEl.textContent = 'กรุณากรอกจำนวนคนทั้ง 3 ช่องเป็นตัวเลขไม่ติดลบ (ใส่ 0 ได้ถ้าไม่มี)';
+    errEl.style.display = 'block'; return;
+  }
+
+  $('#submitBtn').disabled = true;
+  $('#submitBtn').textContent = 'กำลังบันทึก...';
+  try{
+    const action = currentMode==='daily' ? 'saveHeadcountDaily' : 'saveHeadcountMonthlyPlan';
+    const payload = {
+      action,
+      dcCode, dcName: masterDC[dcCode].DC_Name,
+      nimCount: Number(nim), osCount: Number(os), driverCount: Number(drv),
+      submittedBy: submitter
+    };
+    if(currentMode==='daily') payload.date = periodVal; else payload.month = periodVal;
+
+    const res = await fetch(GAS_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'บันทึกไม่สำเร็จ');
+    const total = Number(nim)+Number(os)+Number(drv);
+    const periodLabel = currentMode==='daily' ? `วันที่ ${periodVal}` : `เดือน ${periodVal}`;
+    $('#successSummary').innerHTML = `<b>${masterDC[dcCode].DC_Name}</b><br>${periodLabel}<br>
+      พนักงาน NIM ${nim} · พนักงาน OS ${os} · พขร. ${drv}<br>รวม <b>${total} คน</b><br>
+      <span style="color:var(--muted); font-size:11.5px;">กรอกโดย ${submitter}</span>`;
+    showScreen('screenSuccess');
+    // v: เด้งไปแท็บ "กำลังคนรายวัน" ในระบบหลักอัตโนมัติหลังบันทึกสำเร็จ — ใช้ path สัมพัทธ์ "index.html" สมมติว่า
+    // ไฟล์นี้กับไฟล์หลักอยู่โฟลเดอร์เดียวกันบน GitHub Pages และไฟล์หลักถูก deploy เป็น index.html เสมอ
+    redirectTimer = setTimeout(()=>{ window.location.href = 'index.html#headcount'; }, 1800);
+  } catch(err){
+    errEl.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errEl.style.display = 'block';
+  }
+  $('#submitBtn').disabled = false;
+  $('#submitBtn').textContent = 'บันทึกข้อมูล';
+});
+
+$('#againBtn').addEventListener('click', ()=>{
+  if(redirectTimer){ clearTimeout(redirectTimer); redirectTimer=null; }
+  // ตั้งใจไม่ล้างชื่อ DC/ชื่อผู้กรอก — คนกรอกส่วนใหญ่มักกรอกสาขาเดิมของตัวเองซ้ำๆ ล้างแค่ตัวเลขพอ
+  $('#nimInput').value = ''; $('#osInput').value = ''; $('#driverInput').value = '';
+  initFormDefaults();
+  showScreen('screenForm');
+});
+
+boot();
+</script>
+</body>
+</html>
