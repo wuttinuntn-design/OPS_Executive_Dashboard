@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>กรอกกำลังคน — NIM PEP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#0C447C; --primary-light:#E6F1FB;
+  --ok:#1D9E75; --ok-light:#EAF7F1;
+  --err:#A32D2D; --err-light:#FBEAEA;
+  --text:#1e2530; --muted:#6b7684; --border:#dfe4ea; --bg:#f6f8fa;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'IBM Plex Sans Thai',sans-serif; background:var(--bg); color:var(--text);
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.topbar{
+  width:100%; background:var(--primary); color:#fff; padding:16px 20px;
+  display:flex; align-items:center; gap:10px; font-weight:600; font-size:16px;
+}
+.topbar .logo{width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;}
+.wrap{ width:100%; max-width:420px; padding:20px 18px 40px; flex:1; display:flex; flex-direction:column; }
+.card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:14px; }
+h1{ font-size:17px; margin:0 0 4px; font-weight:700; }
+.sub{ font-size:12.5px; color:var(--muted); margin:0 0 16px; line-height:1.5; }
+label{ display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px; margin-top:16px; }
+label:first-of-type{ margin-top:0; }
+input, select{
+  width:100%; padding:13px 14px; border:1.5px solid var(--border); border-radius:11px;
+  font-size:16px; font-family:inherit; color:var(--text); background:#fff;
+}
+input:focus, select:focus{ outline:none; border-color:var(--primary); }
+input[type="number"]{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:20px; text-align:center; letter-spacing:1px; }
+.btn{
+  width:100%; padding:15px; border:none; border-radius:12px; font-size:16px; font-weight:700;
+  font-family:inherit; cursor:pointer; margin-top:22px; transition:.12s opacity;
+}
+.btn:active{ opacity:.75; }
+.btn-primary{ background:var(--primary); color:#fff; }
+.btn-primary:disabled{ background:#b7c2cc; cursor:not-allowed; }
+.err-msg{ background:var(--err-light); color:var(--err); font-size:12.5px; padding:9px 12px; border-radius:9px; margin-top:12px; display:none; }
+.hint{ font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5; }
+#screenForm, #screenSuccess{ display:none; }
+#screenForm.active, #screenSuccess.active{ display:block; }
+.success-icon{
+  width:64px; height:64px; border-radius:50%; background:var(--ok-light); color:var(--ok);
+  display:flex; align-items:center; justify-content:center; margin:6px auto 16px; font-size:32px;
+}
+.success-summary{ background:var(--bg); border-radius:11px; padding:14px; font-size:13.5px; line-height:1.7; margin-bottom:4px; }
+.success-summary b{ color:var(--primary); }
+.center{ text-align:center; }
+.modeToggle{ display:flex; border:1.5px solid var(--border); border-radius:11px; overflow:hidden; margin-bottom:18px; }
+.modeToggle button{
+  flex:1; border:none; background:#fff; padding:11px 8px; font-size:13.5px; font-weight:600;
+  font-family:inherit; color:var(--muted); cursor:pointer;
+}
+.modeToggle button.active{ background:var(--primary); color:#fff; }
+.count-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.count-row label{ font-size:11px; text-align:center; }
+.count-row input{ padding:11px 6px; font-size:18px; }
+.recent-box{
+  background:var(--bg); border-radius:11px; padding:11px 13px; margin-top:14px; font-size:12px; color:var(--muted);
+  display:none;
+}
+.recent-box.show{ display:block; }
+.recent-box .rtitle{ font-weight:600; color:var(--text); margin-bottom:6px; font-size:12.5px; }
+.recent-box .rrow{ display:flex; justify-content:space-between; padding:3px 0; border-top:1px solid var(--border); }
+.recent-box .rrow:first-of-type{ border-top:none; }
+
+/* ── แท็บบนสุด: กรอกข้อมูล / ดูข้อมูล ── */
+.pagetabs{ width:100%; max-width:420px; display:flex; gap:8px; padding:12px 18px 0; }
+.pagetabs button{
+  flex:1; border:1.5px solid var(--border); background:#fff; color:var(--muted);
+  padding:10px 8px; border-radius:11px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+}
+.pagetabs button.active{ background:var(--primary); color:#fff; border-color:var(--primary); }
+
+/* ── แท็บดูข้อมูล ── */
+#screenView{ display:none; }
+#screenView.active{ display:block; }
+.view-panel-head{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; margin:0 0 8px; }
+.view-panel-sub{ font-weight:400; color:var(--muted); font-size:11px; }
+.view-table-wrap{ overflow-x:auto; margin-bottom:18px; }
+.view-table{ width:100%; border-collapse:collapse; font-size:11.5px; white-space:nowrap; }
+.view-table th{ text-align:center; color:var(--muted); font-weight:600; padding:6px 7px; border-bottom:1.5px solid var(--border); font-size:10.5px; }
+.view-table td{ text-align:center; padding:6px 7px; border-bottom:1px solid var(--border); }
+.view-table th.tl, .view-table td.tl{ text-align:left; }
+.view-table td.mono{ font-family:'IBM Plex Mono',monospace; }
+.view-table .empty-cell{ color:var(--muted); padding:16px; text-align:center; white-space:normal; }
+.calendar-table th:first-child, .calendar-table td:first-child{
+  position:sticky; left:0; background:#fff; box-shadow:1px 0 0 var(--border); z-index:1;
+}
+.calendar-table th, .calendar-table td{ padding:5px 3px !important; font-size:11px; }
+.calendar-nav{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px; }
+.calendar-nav button{
+  border:1.5px solid var(--border); background:#fff; color:var(--text); padding:6px 10px;
+  border-radius:9px; font-size:11.5px; font-family:inherit; cursor:pointer; white-space:nowrap;
+}
+.calendar-nav button:disabled{ color:var(--muted); opacity:.5; cursor:not-allowed; }
+.calendar-nav span{ font-size:12.5px; font-weight:700; color:var(--text); }
+.view-refresh{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+.view-refresh button{
+  border:1.5px solid var(--border); background:#fff; color:var(--muted); padding:6px 12px;
+  border-radius:9px; font-size:12px; font-family:inherit; cursor:pointer;
+}
+
+/* ── แท็บแดชบอร์ด (ของสาขาตัวเอง เน้นดูมือถือ) ── */
+#screenDash{ display:none; }
+#screenDash.active{ display:block; }
+.dash-select-wrap{ display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+.dash-select-wrap select{ flex:1; }
+.dash-empty{ text-align:center; color:var(--muted); font-size:13px; padding:30px 10px; }
+.dash-updated{ font-size:11px; color:var(--muted); text-align:right; margin:-8px 0 14px; }
+.dash-tiles{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:18px; }
+.dash-tile{ background:var(--bg); border-radius:12px; padding:12px 6px; text-align:center; }
+.dash-tile .n{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; color:var(--primary); line-height:1.2; }
+.dash-tile .l{ font-size:11px; color:var(--muted); margin-top:2px; }
+.dash-total{ background:var(--primary); color:#fff; border-radius:14px; padding:16px; text-align:center; margin-bottom:18px; }
+.dash-total .n{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:34px; line-height:1.2; }
+.dash-total .l{ font-size:12px; opacity:.85; margin-top:2px; }
+.dash-sec-title{ font-size:13px; font-weight:700; margin:0 0 10px; display:flex; align-items:center; gap:6px; }
+.dash-sec-title .sub{ font-weight:400; color:var(--muted); font-size:11px; }
+.dash-plan-row{ margin-bottom:12px; }
+.dash-plan-row .hd{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+.dash-plan-row .hd b{ font-weight:600; }
+.dash-plan-bar{ height:9px; border-radius:5px; background:var(--border); overflow:hidden; position:relative; }
+.dash-plan-bar .fill{ height:100%; border-radius:5px; background:var(--ok); transition:width .3s; }
+.dash-plan-bar .fill.over{ background:#C98A1D; }
+.dash-plan-bar .fill.under{ background:var(--err); }
+.dash-plan-note{ font-size:11px; color:var(--muted); margin-top:8px; padding:9px 11px; background:var(--bg); border-radius:9px; }
+.dash-fillrate{ display:flex; align-items:center; gap:12px; background:var(--bg); border-radius:12px; padding:14px; margin-bottom:18px; }
+.dash-fillrate .ring{ flex-shrink:0; }
+.dash-fillrate .txt{ font-size:12.5px; color:var(--muted); line-height:1.6; }
+.dash-fillrate .txt b{ color:var(--text); font-size:14px; }
+.spark-wrap{ margin-bottom:2px; }
+.spark-wrap svg{ width:100%; height:auto; display:block; }
+.spark-labels{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:2px; margin-bottom:16px; }
+.spark-labels:last-of-type{ margin-bottom:4px; }
+.trend-group{ margin-bottom:4px; }
+.trend-group-head{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; margin-bottom:2px; }
+.trend-group-head .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.trend-group-head .latest{ margin-left:auto; font-family:'IBM Plex Mono',monospace; font-weight:700; }
+.spark-pt-label{ font-family:'IBM Plex Mono',monospace; font-size:8px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="logo">P</div>NIM PEP · กำลังคน</div>
+
+<div class="pagetabs" id="pageTabs">
+  <button data-page="form" class="active">กรอกข้อมูล</button>
+  <button data-page="dash">แดชบอร์ดสาขา</button>
+  <button data-page="view">ดูข้อมูล</button>
+</div>
+
+<div class="wrap">
+
+  <!-- ── แดชบอร์ดของสาขาตัวเอง (เลือกสาขา 1 แห่ง ดูสรุปของตัวเอง เน้นดูมือถือเร็วๆ) ── -->
+  <div class="card" id="screenDash">
+    <div class="dash-select-wrap">
+      <select id="dashDCSelect"><option value="">— เลือกสาขา —</option></select>
+    </div>
+    <div id="dashContent"><div class="dash-empty">เลือกสาขาด้านบนเพื่อดูสรุป</div></div>
+  </div>
+
+  <!-- ── หน้าดูข้อมูลกำลังคน (สรุปเท่าที่สาขาควรเห็น — ไม่ใช่ระบบ dashboard หลัก) ── -->
+  <div class="card" id="screenView">
+    <div class="view-refresh"><button id="viewRefreshBtn">↻ รีเฟรช</button></div>
+
+    <div class="view-panel-head">สาขาที่ยังไม่กรอก <span class="view-panel-sub" id="viewMissingSub"></span></div>
+    <div class="view-table-wrap"><table class="view-table" id="viewMissingTable"></table></div>
+
+    <div class="view-panel-head">สาขาที่กรอกครบทุกวัน <span class="view-panel-sub" id="viewStreakSub"></span></div>
+    <div class="view-table-wrap"><table class="view-table" id="viewStreakTable"></table></div>
+
+    <div class="view-panel-head">ปฏิทินกรอกรายวัน <span class="view-panel-sub">✓ กรอกแล้ว · ✕ ผ่านไปแล้วไม่กรอก</span></div>
+    <div class="calendar-nav">
+      <button id="calPrevBtn">‹ เดือนก่อน</button>
+      <span id="calMonthLabel"></span>
+      <button id="calNextBtn">เดือนถัดไป ›</button>
+    </div>
+    <div class="view-table-wrap"><table class="view-table calendar-table" id="viewCalendarTable"></table></div>
+
+    <div class="view-panel-head">กำลังคนรายวัน <span class="view-panel-sub">(เรียงล่าสุดก่อน)</span></div>
+    <div class="view-table-wrap"><table class="view-table" id="viewDailyTable"></table></div>
+
+    <div class="view-panel-head">แผนกำลังคนรายเดือน <span class="view-panel-sub">("จำนวนคนที่ต้องมี")</span></div>
+    <div class="view-table-wrap"><table class="view-table" id="viewMonthlyTable"></table></div>
+
+    <div class="view-panel-head">ใครกรอกของแต่ละสาขา</div>
+    <div class="view-table-wrap" style="margin-bottom:0;"><table class="view-table" id="viewSubmitterTable"></table></div>
+  </div>
+
+  <!-- ── หน้ากรอกข้อมูล ── -->
+  <div class="card" id="screenForm">
+    <h1>กรอกข้อมูลกำลังคน</h1>
+    <p class="sub">ไม่ต้องใส่รหัส แต่กรุณาระบุชื่อผู้กรอกทุกครั้ง เพื่อให้ตรวจสอบย้อนหลังได้</p>
+
+    <div class="modeToggle" id="modeToggle">
+      <button data-mode="daily" class="active">กรอกรายวัน</button>
+      <button data-mode="monthly">แผนรายเดือน</button>
+    </div>
+
+    <label for="dcInput">สาขา (DC)</label>
+    <input type="text" id="dcInput" list="dcList" placeholder="พิมพ์ค้นหาชื่อสาขา..." autocomplete="off">
+    <datalist id="dcList"></datalist>
+
+    <div class="recent-box" id="recentBox">
+      <div class="rtitle">กรอกล่าสุดของสาขานี้</div>
+      <div id="recentList"></div>
+    </div>
+
+    <div id="dailyDateWrap">
+      <label for="dateInput">วันที่</label>
+      <input type="date" id="dateInput">
+    </div>
+    <div id="monthlyMonthWrap" style="display:none;">
+      <label for="monthInput">เดือน</label>
+      <input type="month" id="monthInput">
+    </div>
+
+    <label>จำนวนพนักงาน (คน) — ไม่รวมพนักงานขับรถ</label>
+    <div class="count-row">
+      <div><label for="nimInput">พนักงาน NIM</label><input type="number" id="nimInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+      <div><label for="osInput">พนักงาน OS</label><input type="number" id="osInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+      <div><label for="driverInput">พขร. รวม</label><input type="number" id="driverInput" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="hint">พขร. รวม = พขร. บริษัท + พขร. ผู้ประกอบการ (ไม่ต้องแยก)</div>
+
+    <label for="submitterInput">ชื่อผู้กรอก</label>
+    <input type="text" id="submitterInput" placeholder="ชื่อ-นามสกุล หรือชื่อเล่นที่ระบุตัวได้" autocomplete="off">
+
+    <button class="btn btn-primary" id="submitBtn">บันทึกข้อมูล</button>
+    <div class="err-msg" id="formErr"></div>
+    <div class="hint">กรอกซ้ำวัน/เดือนเดียวกันได้ — ระบบจะแทนที่ค่าล่าสุดให้อัตโนมัติ ไม่นับซ้ำ</div>
+  </div>
+
+  <!-- ── หน้าบันทึกสำเร็จ ── -->
+  <div class="card center" id="screenSuccess">
+    <div class="success-icon">✓</div>
+    <h1>บันทึกสำเร็จ</h1>
+    <p class="sub">ข้อมูลของท่านถูกบันทึกเข้าระบบแล้ว</p>
+    <div class="success-summary" id="successSummary"></div>
+
+    <!-- v: โชว์เฉพาะกรณีบันทึก "รายวัน" เสร็จ แล้วเดือนนี้ยังไม่มีแผนรายเดือนของสาขานี้เลย — ถามก่อนเด้งออก กัน
+         ลืมกรอกแผนรายเดือน (ต้องกรอกแค่ครั้งเดียวต่อเดือน จังหวะนี้เตือนไว้เลยดีที่สุด) -->
+    <div id="monthlyCheckPrompt" style="display:none;">
+      <div class="hint" style="background:var(--primary-light); color:var(--primary); border-radius:9px; padding:10px 12px; margin-top:14px; font-size:12.5px;">
+        <i>ℹ️</i> เดือนนี้ยังไม่มีแผนกำลังคนรายเดือนของสาขานี้เลย ต้องการกรอกตอนนี้เลยไหม? (กรอกครั้งเดียวพอต่อเดือน)
+      </div>
+      <button class="btn btn-primary" id="fillMonthlyBtn">กรอกแผนเดือนนี้เลย</button>
+      <button class="btn" id="skipMonthlyBtn" style="background:var(--bg); color:var(--muted);">ไม่ต้อง ไปหน้ารวม</button>
+    </div>
+
+    <div id="normalRedirectBlock">
+      <button class="btn btn-primary" id="againBtn">กรอกอีกสาขา/วันที่</button>
+      <button class="btn" id="goToDashboardBtn" style="background:var(--bg); color:var(--muted);">ไปหน้ารวม</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx5f5q449Jp4FU4-stRzV4BTirtYC8i5ubpmITIg_koC3WMpaBkSucqH7gZo7ypws_7/exec";
+const $ = s => document.querySelector(s);
+const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const THAI_MONTHS_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+let masterDC = {}; // code -> {DC_Name, ...}
+let currentMode = 'daily'; // 'daily' | 'monthly'
+let allDailyRows = [];   // เก็บไว้ทำ "กรอกล่าสุดของสาขานี้" โดยไม่ต้องยิง fetch ใหม่ทุกครั้งที่พิมพ์ + ใช้โชว์แท็บ "ดูข้อมูล" ด้วย
+let allMonthlyRows = [];
+let redirectTimer = null;
+// v: เดือนที่กำลังดูอยู่ในตารางปฏิทิน (แยกจาก currentMode ของฟอร์มกรอก) — ปุ่มเดือนก่อน/ถัดไปเปลี่ยนค่านี้แล้วเรียก
+// renderCalendarTable() ใหม่ ไม่ให้ไปเดือนอนาคตเกินเดือนปัจจุบัน (ยังไม่มีข้อมูลให้ดู)
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth()+1; // 1-12
+
+function showScreen(id){
+  ['screenForm','screenSuccess','screenView','screenDash'].forEach(s=>{
+    document.getElementById(s).classList.toggle('active', s===id);
+  });
+}
+
+// v: หน้านี้ตัดขั้นตอนใส่ PIN ออกตามที่ UP ขอ (เน้นความเร็ว) — ใช้ "ชื่อผู้กรอก" เป็นตัวระบุตัวตนแทน ไม่มีการยืนยัน
+// ตัวตนจริงจัง (จงใจ เพราะจุดประสงค์คือความเร็ว ไม่ใช่ความปลอดภัยระดับสูง — เหมาะกับข้อมูลกำลังคนที่ไม่ sensitive มาก)
+// v: แก้ปัญหา "เปิดลิงก์แล้วช้า" ที่ UP เจอ — เดิมยิง GAS 2 รอบต่อกัน (getMasterDC ก่อน แล้วรอเสร็จค่อยยิง
+// getHeadcountDaily+Monthly ต่อ) แต่ GAS Web App มี overheadในตัวเอง ~2-3 วิ/รอบ (ตามที่เคยวัดกับระบบหลักไปแล้ว)
+// ยิง 2 รอบต่อกันจึงรวมกันได้ 4-6 วิ ทั้งที่หน้านี้ควรจะเบาและเร็วที่สุด — แก้โดยโชว์ฟอร์มทันทีที่ getMasterDC เสร็จ
+// (อันเดียวที่จำเป็นจริงสำหรับกรอกได้) ส่วน getHeadcountDaily/Monthly (ใช้แค่ทำกล่อง "กรอกล่าสุด" ซึ่งเป็นแค่ของ
+// เสริมความสะดวก ไม่ใช่ของที่ต้องมีก่อนกรอกได้) ให้โหลดต่อใน background ไม่ต้องรอ ผลคือฟอร์มขึ้นเร็วขึ้นเกือบครึ่ง
+async function boot(){
+  await loadMasterDC();
+  initFormDefaults();
+  showScreen('screenForm');
+  loadRecentContext(); // ไม่ await — โหลดพื้นหลัง กว่าจะพิมพ์เลือกสาขาเสร็จก็มักโหลดมาทันอยู่แล้ว
+}
+
+async function loadMasterDC(){
+  const res = await fetch(GAS_URL + '?action=getMasterDC').then(r=>r.json());
+  if(res.ok && Array.isArray(res.data)){
+    res.data.forEach(r=>{
+      const size = r.Confirmed_Size || r.Assumed_Size || '';
+      if(size === 'SAT-CDC') return; // สาขาบริวารไม่ต้องกรอกกำลังคนแยก (นับรวมอยู่ใน CDC แม่แล้ว)
+      masterDC[String(r.DC_Code)] = r;
+    });
+  }
+  const list = $('#dcList');
+  list.innerHTML = Object.values(masterDC)
+    .sort((a,b)=>String(a.DC_Name).localeCompare(String(b.DC_Name),'th'))
+    .map(r=>`<option value="${r.DC_Name}">`).join('');
+
+  // v: เติม dropdown เลือกสาขาของแท็บ "แดชบอร์ดสาขา" + จำสาขาที่เลือกไว้ล่าสุดใน localStorage (มือถือเครื่องเดิม
+  // มักเป็นคนสาขาเดิมกรอก/ดูซ้ำๆ) กันต้องเลือกใหม่ทุกครั้งที่เปิดหน้า
+  const dashSelect = $('#dashDCSelect');
+  const sortedBranches = Object.entries(masterDC).sort((a,b)=>String(a[1].DC_Name).localeCompare(String(b[1].DC_Name),'th'));
+  dashSelect.innerHTML = '<option value="">— เลือกสาขา —</option>' +
+    sortedBranches.map(([code,r])=>`<option value="${code}">${r.DC_Name}</option>`).join('');
+  const savedDC = localStorage.getItem('nimHeadcountDashDC');
+  if(savedDC && masterDC[savedDC]) dashSelect.value = savedDC;
+}
+
+// โหลด Headcount_Daily/Monthly_Plan ทั้งหมดมาเก็บไว้ในตัวแปร ใช้ทำ "กรอกล่าสุดของสาขานี้" ตอนเลือก DC
+// (ข้อมูลไม่ใหญ่มาก โหลดครั้งเดียวตอนเปิดหน้าคุ้มกว่ายิง fetch ใหม่ทุกครั้งที่พิมพ์ค้นหา DC)
+async function loadRecentContext(){
+  try{
+    const [dailyRes, monthlyRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getHeadcountDaily').then(r=>r.json()),
+      fetch(GAS_URL + '?action=getHeadcountMonthlyPlan').then(r=>r.json())
+    ]);
+    if(dailyRes.ok && Array.isArray(dailyRes.data)) allDailyRows = dailyRes.data;
+    if(monthlyRes.ok && Array.isArray(monthlyRes.data)) allMonthlyRows = monthlyRes.data;
+    renderRecentBox(); // เผื่อ user พิมพ์เลือก DC เสร็จไปแล้วก่อนโหลดพื้นหลังเสร็จ ให้กล่อง "กรอกล่าสุด" อัปเดตตาม
+    renderViewTables(); // เผื่อ user สลับไปแท็บ "ดูข้อมูล" ก่อนโหลดพื้นหลังเสร็จ ให้ตารางอัปเดตตามเมื่อโหลดเสร็จ
+    renderDashboardTab(); // เผื่อ user สลับไปแท็บ "แดชบอร์ดสาขา" ก่อนโหลดพื้นหลังเสร็จ ให้อัปเดตตามเมื่อโหลดเสร็จ
+  } catch(e){ /* ไม่ critical — แค่ทำให้กล่อง "กรอกล่าสุด" ไม่โชว์ ไม่กระทบการกรอกใหม่ */ }
+}
+
+function initFormDefaults(){
+  const today = new Date();
+  const iso = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  $('#dateInput').value = iso;
+  $('#dateInput').max = iso; // กันเลือกวันในอนาคต (ฝั่งรายวัน)
+  const monthIso = iso.slice(0,7);
+  $('#monthInput').value = monthIso;
+}
+
+function findDCCodeByName(name){
+  const trimmed = String(name||'').trim();
+  const entry = Object.entries(masterDC).find(([code,r])=>r.DC_Name===trimmed);
+  return entry ? entry[0] : null;
+}
+
+// สลับโหมดรายวัน/แผนรายเดือน — สลับ label วันที่/เดือน ที่แสดง ไม่ล้างค่าที่กรอกไปแล้ว (เผื่อพลาดกดสลับ)
+$('#modeToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  currentMode = btn.dataset.mode;
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+  $('#dailyDateWrap').style.display = currentMode==='daily' ? 'block' : 'none';
+  $('#monthlyMonthWrap').style.display = currentMode==='monthly' ? 'block' : 'none';
+  renderRecentBox();
+});
+
+// พอเลือก/พิมพ์ DC เสร็จ โชว์กล่อง "กรอกล่าสุดของสาขานี้" (จากทั้งรายวันและแผนรายเดือน ตามโหมดที่เลือกอยู่)
+// ช่วยให้คนกรอกเห็นว่ามีคนกรอกไปแล้วหรือยัง กันกรอกซ้ำ/ลืมว่ากรอกไปแล้ว
+// ── แท็บบนสุด: กรอกข้อมูล / ดูข้อมูล ── สลับได้อิสระจาก showScreen('screenForm'/'screenSuccess') เดิม
+// (กันสับสน: ถ้าอยู่กลางฟอร์มค้างไว้แล้วสลับไปดูข้อมูล กลับมาก็ยังกรอกต่อได้ ไม่ล้างค่า)
+$('#pageTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#pageTabs button').forEach(b=>b.classList.toggle('active', b===btn));
+  if(btn.dataset.page==='view'){
+    showScreen('screenView');
+    renderViewTables();
+  } else if(btn.dataset.page==='dash'){
+    showScreen('screenDash');
+    renderDashboardTab();
+  } else {
+    showScreen('screenForm');
+  }
+});
+$('#dashDCSelect').addEventListener('change', ()=>{
+  const v = $('#dashDCSelect').value;
+  if(v) localStorage.setItem('nimHeadcountDashDC', v); else localStorage.removeItem('nimHeadcountDashDC');
+  renderDashboardTab();
+});
+$('#viewRefreshBtn').addEventListener('click', async ()=>{
+  $('#viewRefreshBtn').textContent = '...';
+  await loadRecentContext();
+  $('#viewRefreshBtn').textContent = '↻ รีเฟรช';
+});
+
+// v: แท็บ "ดูข้อมูล" ในหน้ากรอกมือถือเอง — ให้สาขาเห็นสรุปกำลังคนที่กรอกไปแล้วได้ทันทีโดยไม่ต้องเปิดระบบ dashboard
+// หลัก (ตามที่ UP ขอ ยังไม่อยากให้สาขาเห็น dashboard หลัก) โชว์เท่าที่จำเป็น 3 ตาราง เหมือนแท็บ "กำลังคน" ใน
+// dashboard_v8.html แต่ใช้ allDailyRows/allMonthlyRows ที่โหลดไว้แล้วตอนเปิดหน้า ไม่ต้องยิง fetch เพิ่ม
+// v: ตารางปฏิทินรายวัน ตามที่ UP ขอเพิ่ม — แถวเป็นสาขา คอลัมน์เป็นวันที่ 1..วันสุดท้ายของเดือนที่เลือก (calYear/calMonth)
+// ใช้ allDailyRows ที่โหลดไว้แล้วกรองเฉพาะเดือนนั้น (เทียบ prefix "YYYY-MM" ของ Date) ไม่ยิง fetch เพิ่ม — ถ้าเป็นเดือน
+// ปัจจุบัน วันที่ยังไม่ถึง (อนาคต) และวันนี้เองปล่อยว่างไม่ตีว่าขาด (ให้เวลากรอกก่อนหมดวัน) ถ้าเป็นเดือนที่ผ่านไปแล้ว
+// ทั้งเดือน ทุกวันที่ไม่มีข้อมูลถือว่าขาดหมด (ไม่มี "ยังไม่ถึงวัน" อีกแล้วเพราะเดือนนั้นจบไปแล้ว)
+function renderCalendarTable(){
+  const table = $('#viewCalendarTable');
+  const now = new Date();
+  const isCurrentMonth = (calYear===now.getFullYear() && calMonth===now.getMonth()+1);
+  const todayDay = isCurrentMonth ? now.getDate() : null;
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  const monthPrefix = calYear+'-'+String(calMonth).padStart(2,'0');
+
+  $('#calMonthLabel').textContent = `${THAI_MONTHS_FULL[calMonth-1]} ${calYear+543}`;
+  // กันเลือกเดือนอนาคต (ยังไม่มีข้อมูลให้ดู) — ปุ่ม "เดือนถัดไป" กดไม่ได้ถ้าอยู่ที่เดือนปัจจุบันแล้ว
+  $('#calNextBtn').disabled = isCurrentMonth;
+
+  const filledMap = {}; // DC_Code -> Set(day)
+  allDailyRows.forEach(r=>{
+    const dateStr = String(r.Date||'');
+    if(!dateStr.startsWith(monthPrefix)) return;
+    const day = Number(dateStr.slice(8,10));
+    if(!day) return;
+    const code = String(r.DC_Code);
+    if(!filledMap[code]) filledMap[code] = new Set();
+    filledMap[code].add(day);
+  });
+
+  const branches = Object.entries(masterDC).map(([code,r])=>({code, name:r.DC_Name})).sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  if(!branches.length){ table.innerHTML = ''; return; }
+
+  let head = '<th class="tl">สาขา</th>';
+  for(let d=1; d<=daysInMonth; d++) head += `<th>${d}</th>`;
+
+  const body = branches.map(b=>{
+    const filled = filledMap[b.code] || new Set();
+    let cells = `<td class="tl">${b.name}</td>`;
+    for(let d=1; d<=daysInMonth; d++){
+      let mark = '', color = 'var(--border)';
+      const isFutureOrToday = todayDay!==null && d>=todayDay;
+      if(filled.has(d)){ mark='✓'; color='var(--ok)'; }
+      else if(!isFutureOrToday){ mark='✕'; color='var(--err)'; }
+      cells += `<td style="color:${color}; font-weight:700;">${mark}</td>`;
+    }
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  table.innerHTML = `<tr>${head}</tr>${body}`;
+}
+$('#calPrevBtn').addEventListener('click', ()=>{
+  calMonth -= 1;
+  if(calMonth < 1){ calMonth = 12; calYear -= 1; }
+  renderCalendarTable();
+});
+$('#calNextBtn').addEventListener('click', ()=>{
+  const now = new Date();
+  if(calYear===now.getFullYear() && calMonth===now.getMonth()+1) return; // กันเลยเดือนปัจจุบัน
+  calMonth += 1;
+  if(calMonth > 12){ calMonth = 1; calYear += 1; }
+  renderCalendarTable();
+});
+
+function renderViewTables(){
+  renderMissingTable();
+  renderStreakTable();
+  renderCalendarTable();
+  const dTable = $('#viewDailyTable');
+  if(!allDailyRows.length){
+    dTable.innerHTML = `<tr><td class="empty-cell">ยังไม่มีสาขากรอกกำลังคนรายวันเข้ามาเลย</td></tr>`;
+  } else {
+    const sorted = [...allDailyRows].sort((a,b)=> String(b.Date).localeCompare(String(a.Date)) || String(a.DC_Name).localeCompare(String(b.DC_Name),'th'));
+    dTable.innerHTML = `<tr><th>วันที่</th><th class="tl">สาขา</th><th>NIM</th><th>OS</th><th>พขร.</th><th>รวม</th><th class="tl">ผู้กรอก</th></tr>
+      ${sorted.map(r=>{
+        const nim = Number(r.NimExpressCount)||0, os = Number(r.OSCount)||0, drv = Number(r.DriverCount)||0;
+        return `<tr><td class="mono">${formatShortDate_(r.Date)}</td><td class="tl">${r.DC_Name}</td><td class="mono">${nim}</td><td class="mono">${os}</td><td class="mono">${drv}</td>
+          <td class="mono" style="font-weight:700;">${nim+os+drv}</td><td class="tl">${r.Submitted_By||'–'}</td></tr>`;
+      }).join('')}`;
+  }
+
+  const mTable = $('#viewMonthlyTable');
+  if(!allMonthlyRows.length){
+    mTable.innerHTML = `<tr><td class="empty-cell">ยังไม่มีสาขากรอกแผนกำลังคนรายเดือนเข้ามาเลย</td></tr>`;
+  } else {
+    const sortedM = [...allMonthlyRows].sort((a,b)=> String(b.Month).localeCompare(String(a.Month)) || String(a.DC_Name).localeCompare(String(b.DC_Name),'th'));
+    mTable.innerHTML = `<tr><th>เดือน</th><th class="tl">สาขา</th><th>NIM</th><th>OS</th><th>พขร.</th><th>รวม</th><th class="tl">ผู้กรอก</th></tr>
+      ${sortedM.map(r=>{
+        const nim = Number(r.NimExpressCount)||0, os = Number(r.OSCount)||0, drv = Number(r.DriverCount)||0;
+        return `<tr><td class="mono">${r.Month}</td><td class="tl">${r.DC_Name}</td><td class="mono">${nim}</td><td class="mono">${os}</td><td class="mono">${drv}</td>
+          <td class="mono" style="font-weight:700;">${nim+os+drv}</td><td class="tl">${r.Submitted_By||'–'}</td></tr>`;
+      }).join('')}`;
+  }
+
+  const sTable = $('#viewSubmitterTable');
+  const byDC = {};
+  [...allDailyRows.map(r=>({...r, _period:r.Date})), ...allMonthlyRows.map(r=>({...r, _period:r.Month}))].forEach(r=>{
+    if(!r.Submitted_By) return;
+    const dcKey = String(r.DC_Code)+'|'+r.DC_Name;
+    if(!byDC[dcKey]) byDC[dcKey] = { dcName:r.DC_Name, submitters:{} };
+    const sKey = r.Submitted_By;
+    if(!byDC[dcKey].submitters[sKey]) byDC[dcKey].submitters[sKey] = { count:0, lastAt:0 };
+    byDC[dcKey].submitters[sKey].count += 1;
+    const at = r.Submitted_At ? new Date(r.Submitted_At).getTime() : 0;
+    if(at > byDC[dcKey].submitters[sKey].lastAt) byDC[dcKey].submitters[sKey].lastAt = at;
+  });
+  const branches = Object.values(byDC).sort((a,b)=>a.dcName.localeCompare(b.dcName,'th'));
+  if(!branches.length){
+    sTable.innerHTML = `<tr><td class="empty-cell">ยังไม่มีข้อมูลผู้กรอกเลย</td></tr>`;
+  } else {
+    sTable.innerHTML = `<tr><th class="tl">สาขา</th><th class="tl">ผู้กรอก (จำนวนครั้ง)</th></tr>
+      ${branches.map(b=>{
+        const names = Object.entries(b.submitters).sort((a,b2)=>b2[1].lastAt-a[1].lastAt)
+          .map(([name,info])=>`${name} (${info.count})`).join(', ');
+        return `<tr><td class="tl">${b.dcName}</td><td class="tl">${names}</td></tr>`;
+      }).join('')}`;
+  }
+}
+// ── แท็บ "แดชบอร์ดสาขา" — เลือกสาขาเดียวแล้วดูสรุปของตัวเอง เน้นดูมือถือเร็วๆ (ตามที่ UP ขอเพิ่ม) ──
+// ใช้ allDailyRows/allMonthlyRows ที่โหลดไว้แล้ว ไม่ยิง fetch เพิ่ม เหมือนแท็บ "ดูข้อมูล"
+function renderDashboardTab(){
+  const code = $('#dashDCSelect').value;
+  const content = $('#dashContent');
+  if(!code || !masterDC[code]){
+    content.innerHTML = `<div class="dash-empty">เลือกสาขาด้านบนเพื่อดูสรุป</div>`;
+    return;
+  }
+  const dcName = masterDC[code].DC_Name;
+  const todayIso = todayIso_();
+  const thisMonth = todayIso.slice(0,7);
+
+  // แถวรายวันของสาขานี้ เรียงวันที่ล่าสุดก่อน — ใช้ "แถวล่าสุดที่มี" เป็นตัวแทนสถานะปัจจุบัน (ไม่จำเป็นต้องเป็นวันนี้เป๊ะๆ
+  // เผื่อวันนี้ยังไม่กรอก แต่เมื่อวานกรอกไว้แล้วยังถือว่าใกล้เคียงสถานะปัจจุบันพอสมควร)
+  const dcDaily = allDailyRows.filter(r=>String(r.DC_Code)===String(code)).sort((a,b)=>String(b.Date).localeCompare(String(a.Date)));
+  const latest = dcDaily[0] || null;
+
+  if(!latest){
+    content.innerHTML = `<div class="dash-empty">สาขา <b>${dcName}</b> ยังไม่เคยกรอกกำลังคนรายวันเลย<br>ไปที่แท็บ "กรอกข้อมูล" เพื่อเริ่มกรอกได้เลย</div>`;
+    return;
+  }
+
+  const nim = Number(latest.NimExpressCount)||0, os = Number(latest.OSCount)||0, drv = Number(latest.DriverCount)||0;
+  const total = nim+os+drv;
+  const isStale = latest.Date !== todayIso;
+
+  // แผนรายเดือนของสาขานี้ ("จำนวนคนที่ต้องมี") — ถ้ามีของเดือนนี้ ใช้เทียบกับยอดล่าสุดด้านบน
+  const plan = allMonthlyRows.find(r=>String(r.DC_Code)===String(code) && String(r.Month)===thisMonth) || null;
+
+  // อัตรากรอกครบของเดือนนี้ (วันที่มีข้อมูล / วันที่ผ่านไปแล้วนับถึงวันนี้) — ให้เห็นว่ากรอกสม่ำเสมอแค่ไหน
+  const dayOfMonth = Number(todayIso.slice(8,10));
+  const filledDaysThisMonth = new Set(dcDaily.filter(r=>String(r.Date).startsWith(thisMonth)).map(r=>r.Date)).size;
+  const fillPct = dayOfMonth>0 ? Math.round(Math.min(filledDaysThisMonth/dayOfMonth,1)*100) : 0;
+
+  let html = '';
+  html += `<div class="dash-updated">อัปเดตล่าสุด: ${formatShortDate_(latest.Date)}${isStale ? ' <span style="color:var(--err);">(ไม่ใช่วันนี้)</span>' : ''}</div>`;
+
+  html += `<div class="dash-total"><div class="n">${total}</div><div class="l">กำลังคนรวมล่าสุด — ${dcName}</div></div>`;
+
+  html += `<div class="dash-tiles">
+    <div class="dash-tile"><div class="n">${nim}</div><div class="l">พนักงาน NIM</div></div>
+    <div class="dash-tile"><div class="n">${os}</div><div class="l">พนักงาน OS</div></div>
+    <div class="dash-tile"><div class="n">${drv}</div><div class="l">พขร. รวม</div></div>
+  </div>`;
+
+  // เทียบ "กำลังคนหลัก" (แผนรายเดือน) vs กำลังคนจริงล่าสุด — เพิ่มคำอธิบายให้ชัดว่ากำลังคนหลักคือฐานที่ควรมีประจำ
+  // เดือนนั้น ไม่ใช่โควตาที่ต้องครบทุกวันเป๊ะๆ (วันไหนขาด/ลา กำลังคนจริงย่อมต่ำกว่านี้ได้เป็นปกติ ไม่ใช่ปัญหา)
+  html += `<div class="dash-sec-title">กำลังคนหลัก <span class="sub">vs กำลังคนจริงล่าสุด</span></div>`;
+  html += `<div class="dash-plan-note" style="margin-top:0; margin-bottom:12px;">
+    "กำลังคนหลัก" คือจำนวนคนที่สาขาควรมีประจำเดือนนี้ (ตั้งไว้ล่วงหน้าทั้งเดือน) ส่วนกำลังคนจริงเป็นยอดวันต่อวัน
+    บางวันอาจต่ำกว่ากำลังคนหลักได้เพราะมีคนลา/ขาดชั่วคราว — ถือเป็นเรื่องปกติ ไม่ได้แปลว่าสาขาขาดคนถาวร
+    ให้สังเกตถ้าต่ำกว่าต่อเนื่องหลายวันมากกว่า
+  </div>`;
+  if(!plan){
+    html += `<div class="dash-plan-note">เดือนนี้ยังไม่มีข้อมูลกำลังคนหลักของสาขานี้ — ไปกรอกที่แท็บ "กรอกข้อมูล" โหมด "แผนรายเดือน" ได้เลย</div>`;
+  } else {
+    const rows = [
+      ['พนักงาน NIM', nim, Number(plan.NimExpressCount)||0],
+      ['พนักงาน OS', os, Number(plan.OSCount)||0],
+      ['พขร. รวม', drv, Number(plan.DriverCount)||0],
+    ];
+    html += rows.map(([label,actual,target])=>{
+      let pct=0, cls='', diffTxt='';
+      if(target>0){
+        pct = Math.round(actual/target*100);
+        const ratio = actual/target;
+        cls = ratio<0.9 ? 'under' : (ratio>1.15 ? 'over' : '');
+        const diff = actual-target;
+        diffTxt = diff===0 ? 'เท่ากำลังคนหลัก' : (diff>0 ? `สูงกว่ากำลังคนหลัก ${diff} คน` : `ต่ำกว่ากำลังคนหลัก ${Math.abs(diff)} คน`);
+      } else {
+        diffTxt = 'ยังไม่ตั้งกำลังคนหลักหมวดนี้';
+      }
+      const barWidth = Math.min(pct,100);
+      return `<div class="dash-plan-row">
+        <div class="hd"><span>${label}</span><b>${actual} / ${target} คน${target>0?` (${pct}%)`:''}</b></div>
+        <div class="dash-plan-bar"><div class="fill ${cls}" style="width:${barWidth}%;"></div></div>
+        <div style="font-size:11px; color:${cls==='under'?'var(--err)':(cls==='over'?'#C98A1D':'var(--muted)')}; margin-top:3px;">${diffTxt}</div>
+      </div>`;
+    }).join('');
+  }
+
+
+  // อัตรากรอกครบของเดือนนี้ — วงแหวนเปอร์เซ็นต์ง่ายๆ ด้วย SVG stroke-dasharray
+  const R = 26, C = 2*Math.PI*R;
+  const dash = (fillPct/100)*C;
+  html += `<div class="dash-sec-title">ความสม่ำเสมอในการกรอก <span class="sub">(เดือนนี้)</span></div>`;
+  html += `<div class="dash-fillrate">
+    <svg class="ring" width="64" height="64" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="${R}" fill="none" stroke="var(--border)" stroke-width="7"/>
+      <circle cx="32" cy="32" r="${R}" fill="none" stroke="${fillPct>=80?'var(--ok)':(fillPct>=50?'#C98A1D':'var(--err)')}" stroke-width="7"
+        stroke-dasharray="${dash} ${C}" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+      <text x="32" y="37" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Mono, monospace" fill="var(--text)">${fillPct}%</text>
+    </svg>
+    <div class="txt">กรอกแล้ว <b>${filledDaysThisMonth}</b> จาก ${dayOfMonth} วัน<br>ที่ผ่านมาของเดือนนี้</div>
+  </div>`;
+
+  // v: สถิติกรอกครบ "สะสม" ตั้งแต่ 1 มิ.ย. ของปีนี้ ถึงเมื่อวาน — เจาะจงเฉพาะสาขาที่เลือกอยู่ (คู่กับลิสต์รวมทุกสาขา
+  // ในแท็บ "ดูข้อมูล") ให้เห็นสถิติของตัวเองชัดๆ ไม่ต้องไปหาชื่อตัวเองในลิสต์รวม — ไม่รวมวันนี้ (ใช้หลักเดียวกับที่อื่น
+  // เพราะวันนี้ยังไม่ผ่านไป ยังไม่ควรตัดสินว่าขาด)
+  const yearNowCum = new Date().getFullYear();
+  const juneStart = new Date(yearNowCum, 5, 1); // 1 มิ.ย. ของปีปัจจุบัน
+  const yesterdayCum = new Date(); yesterdayCum.setDate(yesterdayCum.getDate()-1);
+  const cumDates = [];
+  if(juneStart <= yesterdayCum){
+    const cur = new Date(juneStart);
+    while(cur <= yesterdayCum){
+      cumDates.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0'));
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+  html += `<div class="dash-sec-title">กรอกครบสะสม <span class="sub">(ตั้งแต่ 1 มิ.ย. ${yearNowCum+543} ถึงเมื่อวาน)</span></div>`;
+  if(!cumDates.length){
+    html += `<div class="dash-plan-note">ยังไม่ถึงช่วงที่นับ (เริ่มนับตั้งแต่ 1 มิ.ย.)</div>`;
+  } else {
+    const filledDateSet = new Set(dcDaily.map(r=>r.Date));
+    const filledCumCount = cumDates.filter(d=>filledDateSet.has(d)).length;
+    const perfect = filledCumCount === cumDates.length;
+    const cumPct = Math.round(filledCumCount/cumDates.length*100);
+    const cumDash = (cumPct/100)*C;
+    html += `<div class="dash-fillrate"${perfect ? ' style="background:var(--ok-light);"' : ''}>
+      <svg class="ring" width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="${R}" fill="none" stroke="var(--border)" stroke-width="7"/>
+        <circle cx="32" cy="32" r="${R}" fill="none" stroke="${perfect?'var(--ok)':(cumPct>=80?'var(--ok)':(cumPct>=50?'#C98A1D':'var(--err)'))}" stroke-width="7"
+          stroke-dasharray="${cumDash} ${C}" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        <text x="32" y="37" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Mono, monospace" fill="var(--text)">${cumPct}%</text>
+      </svg>
+      <div class="txt">${perfect ? '🎉 <b>กรอกครบทุกวันไม่ขาดเลย</b>' : `กรอกแล้ว <b>${filledCumCount}</b> จาก ${cumDates.length} วัน`}<br>ตั้งแต่ 1 มิ.ย. ถึงเมื่อวาน</div>
+    </div>`;
+  }
+
+  // แนวโน้มกำลังคน 14 วันล่าสุด แยกเส้นตามกลุ่มคน (NIM/OS/พขร.) — เพิ่มตัวเลขกำกับที่จุด ให้อ่านค่าได้ตรงๆ ไม่ต้องกะจากกราฟ
+  // แยกเป็นกราฟย่อย 3 อัน (ไม่ทับเส้นกัน) แต่ละอันสเกลตามค่าของตัวเองเพื่อให้เห็นแนวโน้มชัด ไม่โดนกลบด้วยหมวดที่ตัวเลขสูงกว่า
+  const last14 = [];
+  for(let i=13;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const row = dcDaily.find(r=>r.Date===iso);
+    last14.push({
+      date: iso,
+      nim: row ? (Number(row.NimExpressCount)||0) : null,
+      os: row ? (Number(row.OSCount)||0) : null,
+      drv: row ? (Number(row.DriverCount)||0) : null,
+    });
+  }
+  html += `<div class="dash-sec-title">แนวโน้มกำลังคน <span class="sub">(14 วันล่าสุด, แยกตามกลุ่ม)</span></div>`;
+  const seriesDefs = [
+    { key:'nim', label:'พนักงาน NIM', color:'#0C447C' },
+    { key:'os', label:'พนักงาน OS', color:'#8B5FBF' },
+    { key:'drv', label:'พขร. รวม', color:'#C98A1D' },
+  ];
+  seriesDefs.forEach((sd,idx)=>{
+    const pts = last14.map(p=>({ date:p.date, val:p[sd.key] }));
+    const known = pts.filter(p=>p.val!==null).map(p=>p.val);
+    const latest = [...pts].reverse().find(p=>p.val!==null);
+    html += `<div class="trend-group">
+      <div class="trend-group-head"><span class="dot" style="background:${sd.color};"></span>${sd.label}
+        <span class="latest" style="color:${sd.color};">${latest ? latest.val : '–'}</span></div>`;
+    if(known.length<2){
+      html += `<div class="dash-plan-note">ข้อมูลไม่พอสร้างกราฟ (ต้องกรอกอย่างน้อย 2 วันในช่วงนี้)</div>`;
+    } else {
+      const maxV = Math.max(...known), minV = Math.min(...known);
+      const span = (maxV-minV) || 1;
+      const W=300, H=48, padX=6, padTopLabel=16, padBottom=4;
+      const innerH = H-padTopLabel-padBottom;
+      const stepX = (W-padX*2)/13;
+      let pathD = '', started = false;
+      const dots = [];
+      pts.forEach((p,i)=>{
+        const x = padX + stepX*i;
+        if(p.val===null){ started=false; return; }
+        const y = padTopLabel + innerH - ((p.val-minV)/span)*innerH;
+        pathD += (started ? ' L' : ' M') + x.toFixed(1) + ' ' + y.toFixed(1);
+        started = true;
+        const labelUp = y > padTopLabel+2; // ถ้าจุดอยู่ต่ำพอ ใส่เลขไว้เหนือจุด ไม่งั้นใส่ไว้ใต้จุด กันเลขล้นขอบบน
+        const labelY = labelUp ? y-5 : y+9;
+        dots.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.3" fill="${sd.color}"/>
+          <text class="spark-pt-label" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" fill="${sd.color}">${p.val}</text>`);
+      });
+      html += `<div class="spark-wrap"><svg viewBox="0 0 ${W} ${H}">
+        <path d="${pathD}" fill="none" stroke="${sd.color}" stroke-width="2" vector-effect="non-scaling-stroke"/>
+        ${dots.join('')}
+      </svg></div>`;
+      if(idx===seriesDefs.length-1){
+        html += `<div class="spark-labels"><span>${formatShortDate_(last14[0].date)}</span><span>${formatShortDate_(last14[13].date)}</span></div>`;
+      }
+    }
+  });
+
+  content.innerHTML = html;
+}
+
+// วันที่/เดือนของ "วันนี้" ใช้ทั้งตั้งค่า default ในฟอร์ม (initFormDefaults) และเช็ค "ยังไม่กรอก" ในแท็บดูข้อมูล
+function todayIso_(){
+  const t = new Date();
+  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+
+// v: โชว์รายชื่อสาขาที่ "ยังไม่กรอก" ตามที่ UP ขอเพิ่ม — เทียบรายชื่อสาขาทั้งหมดใน masterDC (ตัด SAT-CDC ออกแล้ว
+// ตอนโหลด เพราะสาขาบริวารไม่ต้องกรอกแยก) กับ allDailyRows ของ "วันนี้" และ allMonthlyRows ของ "เดือนนี้" — สาขาไหน
+// ไม่มีในทั้งคู่ = ยังไม่กรอกทั้งคู่, ไม่มีแค่อันใดอันหนึ่ง = ยังไม่กรอกอันนั้น ไม่ต้องรอ fetch ใหม่ ใช้ข้อมูลที่โหลดไว้แล้ว
+function renderMissingTable(){
+  const table = $('#viewMissingTable');
+  const todayIso = todayIso_();
+  const thisMonth = todayIso.slice(0,7);
+  const dailyDoneDC = new Set(allDailyRows.filter(r=>String(r.Date)===todayIso).map(r=>String(r.DC_Code)));
+  const monthlyDoneDC = new Set(allMonthlyRows.filter(r=>String(r.Month)===thisMonth).map(r=>String(r.DC_Code)));
+
+  const branches = Object.entries(masterDC).map(([code,r])=>({
+    code, name:r.DC_Name,
+    missingDaily: !dailyDoneDC.has(String(code)),
+    missingMonthly: !monthlyDoneDC.has(String(code)),
+  })).filter(b=>b.missingDaily || b.missingMonthly)
+    .sort((a,b)=>a.name.localeCompare(b.name,'th'));
+
+  $('#viewMissingSub').textContent = `(${branches.length} สาขา)`;
+
+  if(!branches.length){
+    table.innerHTML = `<tr><td class="empty-cell">ครบทุกสาขาแล้ว 🎉</td></tr>`;
+    return;
+  }
+  table.innerHTML = `<tr><th class="tl">สาขา</th><th>รายวันวันนี้</th><th>แผนเดือนนี้</th></tr>
+    ${branches.map(b=>`<tr><td class="tl">${b.name}</td>
+      <td>${b.missingDaily ? '<span style="color:var(--err);">✕ ยังไม่กรอก</span>' : '✓'}</td>
+      <td>${b.missingMonthly ? '<span style="color:var(--err);">✕ ยังไม่กรอก</span>' : '✓'}</td></tr>`).join('')}`;
+}
+
+// v: โชว์สาขาที่ "กรอกครบทุกวัน" ตามที่ UP ขอเพิ่ม — นับตั้งแต่ 1 มิ.ย. ของปีปัจจุบัน (จุดเริ่มที่ UP กำหนด) ถึง
+// "เมื่อวาน" (ไม่รวมวันนี้ เพราะวันนี้ยังไม่ผ่านไป ยังไม่ควรตัดสินว่าขาด — ใช้หลักเดียวกับตารางปฏิทินด้านล่าง) สาขาไหน
+// มีแถวใน Headcount_Daily ครบทุกวันในช่วงนี้ถือว่า "กรอกครบทุกวัน" ไม่ต้องรอ fetch ใหม่ ใช้ allDailyRows ที่โหลดไว้แล้ว
+// หมายเหตุ: ปีเริ่มต้นอิงปีปัจจุบันเสมอ (ไม่ hardcode ปี) เผื่อใช้ข้ามปีในอนาคต — ถ้าเปิดดูก่อนถึง 1 มิ.ย. ของปีนั้น
+// (เช่น เปิดดูตอน ม.ค.-พ.ค.) จะยังไม่มีช่วงให้นับ (แจ้งข้อความไว้เฉยๆ ไม่ error)
+function renderStreakTable(){
+  const table = $('#viewStreakTable');
+  const now = new Date();
+  const yearNow = now.getFullYear();
+  const startDate = new Date(yearNow, 5, 1); // 1 มิ.ย. ของปีปัจจุบัน (เดือน index 5 = มิถุนายน)
+  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+
+  const dateList = [];
+  if(startDate <= yesterday){
+    const cursor = new Date(startDate);
+    while(cursor <= yesterday){
+      dateList.push(cursor.getFullYear()+'-'+String(cursor.getMonth()+1).padStart(2,'0')+'-'+String(cursor.getDate()).padStart(2,'0'));
+      cursor.setDate(cursor.getDate()+1);
+    }
+  }
+
+  $('#viewStreakSub').textContent = dateList.length
+    ? `(ตั้งแต่ 1 มิ.ย. ${yearNow+543} ถึงเมื่อวาน · ${dateList.length} วัน)`
+    : '';
+
+  if(!dateList.length){
+    table.innerHTML = `<tr><td class="empty-cell">ยังไม่ถึงช่วงที่นับ (เริ่มนับตั้งแต่ 1 มิ.ย.)</td></tr>`;
+    return;
+  }
+
+  const rangeStart = dateList[0], rangeEnd = dateList[dateList.length-1];
+  const filledMap = {}; // DC_Code -> Set(วันที่กรอกแล้วในช่วงที่นับ)
+  allDailyRows.forEach(r=>{
+    const d = String(r.Date||'');
+    if(d < rangeStart || d > rangeEnd) return;
+    const code = String(r.DC_Code);
+    if(!filledMap[code]) filledMap[code] = new Set();
+    filledMap[code].add(d);
+  });
+
+  const branches = Object.entries(masterDC).map(([code,r])=>{
+    const filled = filledMap[code] || new Set();
+    const filledCount = dateList.filter(d=>filled.has(d)).length;
+    return { code, name:r.DC_Name, filledCount };
+  }).filter(b=>b.filledCount === dateList.length)
+    .sort((a,b)=>a.name.localeCompare(b.name,'th'));
+
+  if(!branches.length){
+    table.innerHTML = `<tr><td class="empty-cell">ยังไม่มีสาขาไหนกรอกครบทุกวันเลยในช่วงนี้</td></tr>`;
+    return;
+  }
+  table.innerHTML = `<tr><th class="tl">สาขา</th><th>กรอกครบ</th></tr>
+    ${branches.map(b=>`<tr><td class="tl">${b.name}</td><td style="color:var(--ok); font-weight:700;">✓ ${b.filledCount}/${dateList.length} วัน</td></tr>`).join('')}`;
+}
+// วันที่ "YYYY-MM-DD" → "D เดือนไทยย่อ" (เช่น "11 ก.ค.") ใช้เฉพาะแท็บดูข้อมูลในไฟล์นี้ (ตั้งชื่อกันชนกับ formatShortDate ของ dashboard หลัก)
+function formatShortDate_(dateStr){
+  const parts = String(dateStr).split('-');
+  if(parts.length!==3) return dateStr;
+  const d = Number(parts[2]), m = Number(parts[1]);
+  if(!d || !m || !THAI_MONTHS[m-1]) return dateStr;
+  return `${d} ${THAI_MONTHS[m-1]}`;
+}
+
+$('#submitBtn').addEventListener('click', async ()=>{
+  const dcName = $('#dcInput').value.trim();
+  const submitter = $('#submitterInput').value.trim();
+  const nim = $('#nimInput').value, os = $('#osInput').value, drv = $('#driverInput').value;
+  const errEl = $('#formErr');
+  errEl.style.display = 'none';
+
+  const dcCode = findDCCodeByName(dcName);
+  if(!dcCode){
+    errEl.textContent = 'กรุณาเลือกสาขาจากรายชื่อที่ขึ้นให้เลือก (พิมพ์แล้วแตะชื่อที่ตรง)';
+    errEl.style.display = 'block'; return;
+  }
+  if(!submitter){
+    errEl.textContent = 'กรุณากรอกชื่อผู้กรอก';
+    errEl.style.display = 'block'; return;
+  }
+  const periodVal = currentMode==='daily' ? $('#dateInput').value : $('#monthInput').value;
+  if(!periodVal){
+    errEl.textContent = currentMode==='daily' ? 'กรุณาเลือกวันที่' : 'กรุณาเลือกเดือน';
+    errEl.style.display = 'block'; return;
+  }
+  const counts = [nim, os, drv];
+  if(counts.some(v=> v==='' || isNaN(Number(v)) || Number(v)<0)){
+    errEl.textContent = 'กรุณากรอกจำนวนคนทั้ง 3 ช่องเป็นตัวเลขไม่ติดลบ (ใส่ 0 ได้ถ้าไม่มี)';
+    errEl.style.display = 'block'; return;
+  }
+
+  $('#submitBtn').disabled = true;
+  $('#submitBtn').textContent = 'กำลังบันทึก...';
+  try{
+    const action = currentMode==='daily' ? 'saveHeadcountDaily' : 'saveHeadcountMonthlyPlan';
+    const payload = {
+      action,
+      dcCode, dcName: masterDC[dcCode].DC_Name,
+      nimCount: Number(nim), osCount: Number(os), driverCount: Number(drv),
+      submittedBy: submitter
+    };
+    if(currentMode==='daily') payload.date = periodVal; else payload.month = periodVal;
+
+    const res = await fetch(GAS_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'บันทึกไม่สำเร็จ');
+    const total = Number(nim)+Number(os)+Number(drv);
+    const periodLabel = currentMode==='daily' ? `วันที่ ${periodVal}` : `เดือน ${periodVal}`;
+    $('#successSummary').innerHTML = `<b>${masterDC[dcCode].DC_Name}</b><br>${periodLabel}<br>
+      พนักงาน NIM ${nim} · พนักงาน OS ${os} · พขร. ${drv}<br>รวม <b>${total} คน</b><br>
+      <span style="color:var(--muted); font-size:11.5px;">กรอกโดย ${submitter}</span>`;
+    // v: อัปเดตข้อมูลในตัวแปรทันที (ไม่ต้อง fetch ใหม่) กันเช็ค "มีแผนรายเดือนหรือยัง" พลาดถ้ากรอกหลายรายการต่อ
+    // กันในเซสชันเดียว (เช่น กรอกรายวันแล้วกดกรอกแผนเดือนต่อทันที แล้วย้อนมาเช็ค DC เดิมอีกที)
+    const savedRecord = { Date:periodVal, Month:periodVal, DC_Code:dcCode, DC_Name:masterDC[dcCode].DC_Name,
+      NimExpressCount:Number(nim), OSCount:Number(os), DriverCount:Number(drv), Submitted_By:submitter, Submitted_At:new Date().toISOString() };
+    const targetArr = currentMode==='daily' ? allDailyRows : allMonthlyRows;
+    const keyField = currentMode==='daily' ? 'Date' : 'Month';
+    const existingIdx = targetArr.findIndex(r=>String(r.DC_Code)===String(dcCode) && String(r[keyField])===String(periodVal));
+    if(existingIdx>=0) targetArr[existingIdx] = savedRecord; else targetArr.push(savedRecord);
+    renderViewTables(); // อัปเดตแท็บ "ดูข้อมูล" ทันที ไม่ต้องรอกดรีเฟรช
+
+    showScreen('screenSuccess');
+
+    // v: เช็คว่าเดือนนี้มีแผนรายเดือนของสาขานี้อยู่แล้วหรือยัง — เฉพาะตอนบันทึก "รายวัน" เสร็จเท่านั้น (ถ้ากำลังกรอก
+    // แผนรายเดือนอยู่แล้ว ไม่ต้องถามซ้ำ) ถ้ายังไม่มี ให้หยุดค้างไว้ถามก่อนเด้งออก กันลืมกรอกแผนรายเดือน (แค่ครั้งเดียว
+    // ต่อเดือน จังหวะนี้เตือนดีที่สุดเพราะเปิดหน้านี้อยู่แล้ว ไม่ต้องเปิดใหม่ทีหลัง)
+    const thisMonth = periodVal ? periodVal.slice(0,7) : '';
+    const hasMonthlyPlan = currentMode!=='daily' || allMonthlyRows.some(r=> String(r.DC_Code)===String(dcCode) && String(r.Month)===thisMonth);
+    if(currentMode==='daily' && !hasMonthlyPlan){
+      $('#monthlyCheckPrompt').style.display = 'block';
+      $('#normalRedirectBlock').style.display = 'none';
+      // เก็บ dcCode/dcName ไว้ใช้ตอนกด "กรอกแผนเดือนนี้เลย"
+      $('#monthlyCheckPrompt').dataset.dcCode = dcCode;
+    } else {
+      $('#monthlyCheckPrompt').style.display = 'none';
+      $('#normalRedirectBlock').style.display = 'block';
+      // v: ไม่เด้งอัตโนมัติแล้ว — ให้ผู้ใช้กดปุ่ม "ไปหน้ารวม" เองถ้าต้องการ (กันกรอกหลายรายการติดกันแล้วโดนเด้งออกไปก่อน)
+    }
+  } catch(err){
+    errEl.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+    errEl.style.display = 'block';
+  }
+  $('#submitBtn').disabled = false;
+  $('#submitBtn').textContent = 'บันทึกข้อมูล';
+});
+
+$('#fillMonthlyBtn').addEventListener('click', ()=>{
+  const dcCode = $('#monthlyCheckPrompt').dataset.dcCode;
+  // สลับไปโหมดแผนรายเดือน + คงชื่อ DC/ผู้กรอกไว้ให้ (คนกรอกคนเดียวกัน สาขาเดียวกัน แค่เปลี่ยนประเภทข้อมูล)
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.toggle('active', b.dataset.mode==='monthly'));
+  currentMode = 'monthly';
+  $('#dailyDateWrap').style.display = 'none';
+  $('#monthlyMonthWrap').style.display = 'block';
+  $('#dcInput').value = masterDC[dcCode]?.DC_Name || '';
+  $('#nimInput').value = ''; $('#osInput').value = ''; $('#driverInput').value = '';
+  initFormDefaults();
+  renderRecentBox();
+  showScreen('screenForm');
+});
+$('#skipMonthlyBtn').addEventListener('click', ()=>{
+  window.location.href = 'index.html#headcount';
+});
+$('#goToDashboardBtn').addEventListener('click', ()=>{
+  window.location.href = 'index.html#headcount';
+});
+
+$('#againBtn').addEventListener('click', ()=>{
+  if(redirectTimer){ clearTimeout(redirectTimer); redirectTimer=null; }
+  // ตั้งใจไม่ล้างชื่อ DC/ชื่อผู้กรอก — คนกรอกส่วนใหญ่มักกรอกสาขาเดิมของตัวเองซ้ำๆ ล้างแค่ตัวเลขพอ
+  $('#nimInput').value = ''; $('#osInput').value = ''; $('#driverInput').value = '';
+  initFormDefaults();
+  showScreen('screenForm');
+});
+
+boot();
+</script>
+</body>
+</html>
